@@ -1,0 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  passwordHash      String
+  bandcampUsername  String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  ownedGroups       Group[]           @relation("GroupOwner")
+  groupMemberships  GroupMembership[]
+  bandcampCollection BandcampCollection[]
+  bandcampWishlist  BandcampWishlist[]
+
+  @@map("users")
+}
+
+model Group {
+  id        String   @id @default(cuid())
+  name      String
+  ownerId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  owner     User               @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members   GroupMembership[]
+
+  @@map("groups")
+}
+
+model GroupMembership {
+  id      String @id @default(cuid())
+  userId  String
+  groupId String
+  role    Role   @default(MEMBER)
+  joinedAt DateTime @default(now())
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+  @@map("group_memberships")
+}
+
+model BandcampCollection {
+  id           String   @id @default(cuid())
+  userId       String
+  bandcampId   String
+  title        String
+  artist       String
+  type         ItemType
+  dateAdded    DateTime
+  bandcampUrl  String
+  createdAt    DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bandcampId])
+  @@map("bandcamp_collection")
+}
+
+model BandcampWishlist {
+  id          String   @id @default(cuid())
+  userId      String
+  bandcampId  String
+  title       String
+  artist      String
+  price       Float?
+  currency    String?
+  dateAdded   DateTime
+  bandcampUrl String
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bandcampId])
+  @@map("bandcamp_wishlist")
+}
+
+enum Role {
+  OWNER
+  MEMBER
+}
+
+enum ItemType {
+  ALBUM
+  TRACK
+}
